@@ -1,0 +1,182 @@
+							MICRO-FRONTENDS FROM SCRATCH
+
+Source: https://www.youtube.com/watch?v=lKKsjpH09dU&ab_channel=freeCodeCamp.org
+
+						CREANDO MICRO-FRONTENDS
+
+Para crear micro-frontends tengo el comando npx create-mf-app.Asi pues,empecemos creando dos apps:
+
+>npx create-mf-app <- Lo importante es el mf(module-federation).
+
+A la primera la llamo 'home',el tipo es Application y puerto 3000.Tailwind como estilos.A la segunda la llamo pdp(product detail page),y lo mismo pero en el 3001.
+
+Las arranco con yarn && yarn start(fijate en la necesidad de multiterminales)
+
+>yarn && yarn start
+
+			SHARING COMPONENTES BETWEEN MICRO-FRONTENDS
+
+Bien, ahora imaginemos que somos el equipo de Home, y que creamos un Header y un Footer.Sería genial que el equipo de pdp pudiera reutilizar estos componentes del otro equipo.Para ello el equipo/mf que crea el componente debe exponerlo en la propiedad exposes de su webpack.config.js:
+
+plugins: [
+  new ModuleFederationPlugin({
+    name: "home",
+    filename: "remoteEntry.js",
+    remotes: {},
+    exposes: {
+      "./Header": "./src/Header.jsx",
+      "./Footer": "./src/Footer.jsx",
+    },
+
+Faltará reiniciar el server ya que hemos cambiado el webpack.config.js.
+>yarn start
+Esto creará un remoteEntry.js en la carpeta public.Es un manifiesto del microfrontend con lo que expone(de momento solo los dos anteriores)
+
+Ahora para que pdp pueda acceder a los componentes hay que ir a la propiedad remotes de su webpack.config.js:
+  remotes: {
+    home: "home@http://localhost:3000/remoteEntry.js",
+    },
+NOTA: home debe coincidir con el valor que se le dió en la propiedad name del mf.
+De nuevo,dado que he cambiado el webpack.config.js del mf pdp tengo que reiniciar el dev-server con yarn start
+TIP: fijate que también hay una propiedad para el filename que hace de manifiesto(filename: "remoteEntry.js")
+
+Bien,resumiendo,ya puedo ir al otro mf y consumir componentes del primero,claro que tengo que llamarlos asi:
+
+import Footer from "home/Footer"; <- supongo que home resolverá a home@http://localhost:3000/remoteEntry.js
+import Header from "home/Header";
+
+const App = () => (
+  <div className="mt-10 text-3xl mx-auto max-w-6xl">
+    <Header />
+      <div className="my-10">Product Details Page</div>
+    <Footer />
+  </div>
+);
+
+IMPORTANTE: si home hace un cambio en los componentes Footer o Header se verán reflejados en los demás mf.
+
+					WHY MICRO-FRONTENDS ARE IMPORTANT
+
+La razón por las que las compañias están inviertiendo en arquitecturas de micro-frontends es la misma por la que usan micro-servicios en el backend.					
+Cada equipo podría manejar su propio server,su propia app independientemente.Cada mf será manejada por un equipo diferente,cada uno con su ciclo de deploy,fijate que cuando un equipo haga el deploy actualizará cualquier componente que otro equipo este consumiendo.
+
+NOTA: según la metodología Atom Design existen Atoms(un botón,ie),moléculas(un conjunto de atomos),y organismos(tendrían incluso su propio estado,por ejemplo un grupo de botones Add-Cancel y un par de inputs,o el selector de la BookingApp para la familia-hijos-habitaciones).
+Se recomienda que un mf sea mínimo un organismo,ya que compartir un atom o una molecule es muy poco.Los otros dos rangos superiores a Organism, que son templates y pages no representan realmente un mf.
+Podriamos resumir que un mf es un componente funcional completo
+
+IMPORTANTE: la tecnología que hace posible compartir estos organismos es Webpack Module Federation,y realmente permite compartir de todo,desde funciones,hasta componentes,páginas enteras,rutas...
+
+				WHY MODULE FEDERATION
+
+Module Federation es una feature que ya viene built-in desde webpack 5,y que permite compartir componentes entre mf.Es totalmente gratis,asi que cualquier cosa que esté configurada con webpack,puede usar module federation.
+Además,cualquier framework UI puede usarla.				
+
+Bien,si observo el .dio puedo ver en la page 1 que si un componente actualiza una libreria descentralizada llevará a issues en los otros mfs,ya que tiene que avisar al grupo porque se quedó con una versión anterior del componente
+
+La opción dos sería que cada deploy actualice todos los mfs mediante una libreria shim ()
+
+Con la opcion 3(module federation) sólo hay que consumir el componente directamente desde otro host.Un cambio en el componente actualizará también los componentes en el mf que lo consuma.
+
+Si bien hay alguna cosa que hay que tener en cuenta,de las tres metodologías posibles para compartir contenido module federation es la mejor
+
+            ASYNCHRONOUS LOADING
+
+Carguemos el Header con lazy loading en el mf pdp:
+const Header = React.lazy( () => import('home/Header')); <- fijate que ya no es import xxx from pues ya le estoy dando nombre a la operación por ser JS            
+
+Al usar lazy puedo englobar a ese Header en Suspense:
+const Header = React.lazy( () => import('home/Header'));
+   <Suspense fallback={<div>Loading...</div>}>
+      <Header />
+    </Suspense>
+
+IMPORTANTE: fijate que los mf comparten las dependencias.Todos las meterán en la constante deps:
+const deps = require("./package.json").dependencies;
+
+Y despues las comparten en la propiedad shared(fijate también que react y react-dom van con singleton a true,con lo que comparten una sola instancia):
+  shared: {
+        ...deps,
+        react: {
+          singleton: true,
+          requiredVersion: deps.react,
+        },
+        "react-dom": {
+          singleton: true,
+          requiredVersion: deps["react-dom"],
+        },
+      },
+Supongo que podré(o deberé) compartir en Singleton varias librerias comunes.
+NOTA: esto es incluso necesario,ya que si tuviera varias instancias de la libreria React tendré errores(react maneja varios datos a nivel de libreria)
+Es por esto que Header solo pesaba 1.1kb
+
+            MINUTO 25 ERROR HANDLING
+
+Obviamente si tiro abajo el mf Home rompe a PdP,pero no será así como se ejecute cuando este en prod.Module Federation se despliegará a un static asset como s3.Asi pues simplemente hay que hacer el build y servir el estático resultante de compilar una SPA.            
+Si que es un problema que un equipo no comunique a otro un cambio(es decir el quipo que hostea un componente no le avisa al que lo consume)
+
+Para evitar esto se usan Error Boundaries(Medidas contra errores).Son un componente de Clase como los anteriores a React.v.16.18
+
+export default class Safecomponent extends Component {
+  constructor(props){
+    super(props);
+    this.state = {
+      hasError: false,
+    }
+  }
+
+  static getDerivedStateFromError(error){
+    return {
+      hasError: true,
+    }
+  }
+
+  componentDidCatch(){}
+
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong.</h1>;
+    }
+    return this.props.children;
+  }
+  
+}
+Dicho componente ErrorBoundary lleva una estructura definida.Despues debe usarse como un HOC en el componente que quiere proteger,en este caso es el Header del mf Pdp que es el que lo consume y tendrá problemas:
+   <SafeComponent>
+        <Header />
+        <div className="my-10">Product Details Page</div>
+        <Footer />
+      </SafeComponent> 
+      
+           MINUTO 32 SERVER SETUP
+
+Si bien es muy posible acabar con un servidor por cada mf vamos a crea un monolytic server.En este punto decido usar pnpm dlx(lo siguiente a pnpx) en el Linux:
+>pnpm dlx create-mf-app <- eligo el nombre,que sea una API Server con NextAuth en el puerto 8080
+TIP: fijate que si uso pnpm install me creará enlaces simbólicos en vez de comprimidos o binarios(y a donde apuntan??)Parece bastante más rápido,si.Parece que es igual que npm pero con add en vez de install(seguir investigando).
+
+        MINUTO 38 SHARING FUNCTIONS
+
+Bien,imaginando que el mf Home tiene un archivo de utils donde obtener de la API tanto los products como un product por ID(pero lo tiene ese mf,ojo) el otro mf Pdp quiere reusar esa función del primer mf para obtener por ID,ya que,Obviamente, han echo ellos la lógica y no es necesario reescribirla.
+
+No puede ser más sencillo,de nuevo el mf host tiene que exponer el archivo:
+exposes: {
+  "./Header": "./src/components/Header.jsx",
+  "./Footer": "./src/components/Footer.jsx",
+  "./products": "./src/utils/products.js",
+},        
+NOTA: memoriza que cada cambio en el webpack.config.js necesita de un reboot del server.Fijate que si le llamo ./products luego accederé con <mf>/products es decir con home/products pero si le llamo ./Utils accederé con home/Utils.Genial
+
+IMPORTANTE: dentro de cada webpack.config de cada mf puedo definir como se comporta el server con la propiedad boleana historyApiFallback:
+devServer: {
+  port: 3000,
+  historyApiFallback: true,
+},
+De momento cualquier ruta va a servir el index.html,pero queremos sacar el id de la url /products/1 y mostrar el producto con ese id.
+>yarn add react-router-dom
+
+const {id} = useParams(); etc...
+
+      MINUTO 50 NOMECLATURE - SHARING STATE BETWEEN MICRO-FRONTENDS
+
+Veremos como compartir estado entre la pagina host(la que consume el componente) y el remoto(el que ofreció el componente).Vamos a compartir el JWT,y alguna cosa más entre ellos.Primero voy al server y sigo sus pasos
+Minuto 59
+
