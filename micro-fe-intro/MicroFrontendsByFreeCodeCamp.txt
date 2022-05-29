@@ -178,5 +178,17 @@ const {id} = useParams(); etc...
       MINUTO 50 NOMECLATURE - SHARING STATE BETWEEN MICRO-FRONTENDS
 
 Veremos como compartir estado entre la pagina host(la que consume el componente) y el remoto(el que ofreció el componente).Vamos a compartir el JWT,y alguna cosa más entre ellos.Primero voy al server y sigo sus pasos
-Minuto 59
+Tras seguir sus pasos y cambiar el modulo authorized a cart en Nest creo un nuevo mf(ojo es con pnpm dlx create-mf-app para mi):
+>pnpm dlx create-mf-app <- de tipo Application,port 3002,name cart ,javascript y tailwind.Instalo los modules con pnpm install
+Fijate que usar create-mf en vez de create-cra me deja lo mínimo para empezar,que es lo que quiero
+
+NOTA: fijate que este tercer mf tiene en remotes una referencia a si mismo:
+      remotes: {
+        home: "home@http://localhost:3000/remoteEntry.js",
+        pdp: "pdp@http://localhost:3001/remoteEntry.js",
+        cart: "cart@http://localhost:3002/remoteEntry.js" <- porqué ??
+
+Sea como sea Module Federation tiene soporte para que un mf se referencie a si mismo(importante).
+
+Resumen del SHARE JWT: realmente para compartir algo lo único que tiene que hacer un microfrontend es compartir/exponer alguna función(en este caso un customHook).El resto de mfs simplemente se traen el hook y operan en base a ello.Desde luego parece muy interesante todo esto,claro que habría que ver si es realmente mejor usar esta arquitectura en vez de un monolito en el front.
 

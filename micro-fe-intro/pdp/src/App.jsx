@@ -3,9 +3,9 @@ import Header from "home/Header";
 import React from "react";
 import ReactDOM from "react-dom";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import "remixicon/fonts/remixicon.css";
 import PdPContent from "./components/PdPContent";
 import "./index.scss";
-
 const App = () => {
   return (
     <Router>

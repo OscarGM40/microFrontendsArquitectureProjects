@@ -1,11 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
-
+import "remixicon/fonts/remixicon.css";
+import Footer from "./components/Footer";
+import Header from "./components/Header";
+import HomeContent from "./components/HomeContent";
 import "./index.scss";
 
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-import HomeContent from "./components/HomeContent";
 
 const App = () => (
   <div className="mt-10 text-3xl mx-auto max-w-6xl">
