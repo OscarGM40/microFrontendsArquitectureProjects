@@ -192,3 +192,11 @@ Sea como sea Module Federation tiene soporte para que un mf se referencie a si m
 
 Resumen del SHARE JWT: realmente para compartir algo lo único que tiene que hacer un microfrontend es compartir/exponer alguna función(en este caso un customHook).El resto de mfs simplemente se traen el hook y operan en base a ello.Desde luego parece muy interesante todo esto,claro que habría que ver si es realmente mejor usar esta arquitectura en vez de un monolito en el front.
 
+          CROSS-PLATFORM MICROFES
+
+ Por alguna razón hay otro equipo que decidió usar SolidJS y no React.¿Es posible que se comuniquen entre ellos con mfe?La respuesta es si:
+
+
+      MICRO-FES ROUTING 1H 40M       
+
+      
