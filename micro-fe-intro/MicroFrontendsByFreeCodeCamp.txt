@@ -199,4 +199,27 @@ Resumen del SHARE JWT: realmente para compartir algo lo único que tiene que hac
 
       MICRO-FES ROUTING 1H 40M       
 
-      
+Bien,hay alguna forma de que pueda meter estas 4 mfes en una única SPA?La verdad es que si.Para ello se usa la libreria Single-Spa, aunque aqui lo hicimos de forma cutre exportar todos los componentes a un mfe que los recibe todos y hace el sistema de rutas(esto se hace con software preparado para ello como single-spa que agrupa todos los mfe).Este además es el siguiente paso que debería dar,y es aprender single-spa para agrupar mfes
+
+TESTING: para testing puedo usar mocks para mockear otros mfes.Lo primero es instalar en -D las librerias:
+
+>yarn add @testing-library/react-hooks jest -D
+
+Ahora creo un file jest.config.js con el environment(comprobar el env el lunes):
+module.exports = {
+  testEnvironment: 'jsdom',
+} ;
+
+Veamos ahora como testear un custom hook:
+
+en el test:
+jest.mock("cart/cart", () => ({
+  cart:{
+    cartItems:[],
+    subscribe: jest.fn()
+  }
+}))
+en __mocks__(ojo,si mockeo cart/cart tengo que crear __mocks__/cart/cart.js).
+Es decir si quiero mockear home/products tengo que crear el directorio home y el file products.js en mocks y se llamará a su contenido:
+En ese file __mocks__/cart/cart.js:
+export default {} <- parece que tuvo que exportar un objeto vacio para quitar los errores 

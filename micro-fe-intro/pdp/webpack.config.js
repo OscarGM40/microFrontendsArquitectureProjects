@@ -51,7 +51,9 @@ module.exports = {
 
 
       },
-      exposes: {},
+      exposes: {
+        './PdPContent':'./src/components/PdPContent.jsx',
+      },
       shared: {
         ...deps,
         react: {

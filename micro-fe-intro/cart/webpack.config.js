@@ -53,6 +53,7 @@ module.exports = {
         './useLoggedIn':'./src/hooks/useLoggedIn.js',
         './Login':'./src/components/Login.jsx',
         './MiniCart':'./src/components/MiniCart.jsx',
+        './CartContent':'./src/components/CartContent.jsx',
       },
       shared: {
         ...deps,
